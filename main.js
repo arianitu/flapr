@@ -18,63 +18,71 @@ var g_playerId      = 1;
 var WebSocketServer = require('ws').Server;
 var Room            = require('./room');
 var Player          = require('./player');
+var domain          = require('domain').create();
+
+domain.on('error', function(err){
+	// handle the error safely
+	console.error(err);
+});
 
 console.log("Starting FlapMMO server on port: " +  g_port);
 var wss             = new WebSocketServer({ port: g_port });
 
+domain.run(runServer);
+function runServer() {
+	wss.on('connection', function(ws) {
+		ws.on('message', function(message) {
+			var messageType = message.readUInt8(0);
+			switch(messageType) {
+			case 5:	
+				if (ws.playerId) {
+					var player = Room.getPlayer(ws.playerId);
+					var nick = "";
+					for (var i = 1; i < message.length; i++) {
+						var charCode = message.readUInt8(i);
+						if (charCode === 0) {
+							break;
+						}
+						nick += String.fromCharCode(charCode);
+					}
+					player.nick = nick;
+					return;
+				}
 
-wss.on('connection', function(ws) {
-    ws.on('message', function(message) {
-	    var messageType = message.readUInt8(0);
-	    switch(messageType) {
-	    case 5:	
-		    if (ws.playerId) {
-			    var player = Room.getPlayer(ws.playerId);
-			    var nick = "";
-			    for (var i = 1; i < message.length; i++) {
-				    var charCode = message.readUInt8(i);
-				    if (charCode === 0) {
-					    break;
-				    }
-				    nick += String.fromCharCode(charCode);
-			    }
-			    player.nick = nick;
-			    return;
-		    }
+				var player = new Player(g_playerId, ws);
+				ws.playerId = g_playerId++;
+				g_playerId = g_playerId % 1000000000;
 
-		    var player = new Player(g_playerId, ws);
-		    ws.playerId = g_playerId++;
-		    g_playerId = g_playerId % 1000000000;
+				Room.add(player);
+				break;
 
-		    Room.add(player);
-		    break;
+			case 2:
+				if (! ws.playerId) {
+					return;
+				}
 
-	    case 2:
-		    if (! ws.playerId) {
-			    return;
-		    }
+				var player = Room.getPlayer(ws.playerId);
+				if (! player) {
+					return;
+				}
 
-		    var player = Room.getPlayer(ws.playerId);
-		    if (! player) {
-			    return;
-		    }
+				var bufferIndex = 1;
+				var numberOfJumps = message.readUInt16LE(bufferIndex); bufferIndex += 2;
+				var jumps = [];
+				for (var i = 0; i < numberOfJumps; i++) {
+					var jump = message.readUInt16LE(bufferIndex); bufferIndex += 2;
+					jumps.push(jump);
+				}
 
-		    var bufferIndex = 1;
-		    var numberOfJumps = message.readUInt16LE(bufferIndex); bufferIndex += 2;
-		    var jumps = [];
-		    for (var i = 0; i < numberOfJumps; i++) {
-			    var jump = message.readUInt16LE(bufferIndex); bufferIndex += 2;
-			    jumps.push(jump);
-		    }
+				player.jumps = jumps;
+				Room.tick();
 
-		    player.jumps = jumps;
-		    Room.tick();
-
-		    break;
-	    }
-    });
-	
-	ws.on('close', function() {
-		Room.remove(ws.playerId);
+				break;
+			}
+		});
+		
+		ws.on('close', function() {
+			Room.remove(ws.playerId);
+		});
 	});
-});
+}
