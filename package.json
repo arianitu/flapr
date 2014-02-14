@@ -6,6 +6,9 @@
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
+  "bin": {
+	  "flapr": "./main.js"
+  },
   "author": "Arianit Uka",
   "dependencies": {
     "ws": "~0.4.31"
