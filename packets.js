@@ -93,7 +93,7 @@ module.exports = {
 			}
 
 			// clear out the jump deltas as they've been sent off.
-			player.jump = [];
+			player.jumps = [];
 		}
 		return message;
 	}
