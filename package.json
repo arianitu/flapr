@@ -1,6 +1,6 @@
 {
   "name": "flapr",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "description": "An open source server for flapmmo.",
   "main": "main.js",
   "scripts": {
