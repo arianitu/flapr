@@ -20,9 +20,9 @@ var Room            = require('./room');
 var Player          = require('./player');
 var domain          = require('domain').create();
 
-domain.on('error', function(err){
-	// handle the error safely
-	console.error(err);
+domain.on('error', function printDomainError(error){
+	console.error("Domain caught an error:");
+	console.error(error);
 });
 
 console.log("Starting FlapMMO server on port: " +  g_port);
@@ -30,8 +30,9 @@ var wss             = new WebSocketServer({ port: g_port });
 
 domain.run(runServer);
 function runServer() {
-	wss.on('connection', function(ws) {
-		ws.on('message', function(message) {
+
+	wss.on('connection', function setupConnection(ws) {
+		ws.on('message', function handleMessage(message) {
 			var messageType = message.readUInt8(0);
 			switch(messageType) {
 			case 5:	
@@ -80,8 +81,12 @@ function runServer() {
 				break;
 			}
 		});
-		
-		ws.on('close', function() {
+		ws.on('error', function printError(error) {
+			console.error("A websocket encountered an error");
+			console.error(error);
+		});
+			
+		ws.on('close', function removeFromRoom() {
 			Room.remove(ws.playerId);
 		});
 	});
