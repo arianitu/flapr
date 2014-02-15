@@ -30,7 +30,6 @@ var wss             = new WebSocketServer({ port: g_port });
 
 domain.run(runServer);
 function runServer() {
-
 	wss.on('connection', function setupConnection(ws) {
 		ws.on('message', function handleMessage(message) {
 			var messageType = message.readUInt8(0);
@@ -89,5 +88,10 @@ function runServer() {
 		ws.on('close', function removeFromRoom() {
 			Room.remove(ws.playerId);
 		});
+	});
+
+	wss.on('error', function printError(error) {
+		console.error("Websocket server encountered an error:");
+		console.error(error);
 	});
 }
